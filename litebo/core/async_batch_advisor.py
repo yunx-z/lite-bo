@@ -8,7 +8,7 @@ from litebo.core.advisor import Advisor
 class AsyncBatchAdvisor(Advisor):
     def __init__(self, config_space,
                  batch_size=4,
-                 initial_trials=10,
+                 initial_trials=4,
                  initial_configurations=None,
                  init_strategy='random_explore_first',
                  optimization_strategy='bo',
@@ -116,7 +116,7 @@ class AsyncBatchAdvisor(Advisor):
         config, perf, trial_state = observation
         assert config in self.running_configs
         self.running_configs.remove(config)
-        if not isinstance(perf, float):
+        if not isinstance(perf, (float,int)):
             perf = perf[-1]
         if trial_state == SUCCESS and perf < MAXINT:
             if len(self.configurations) == 0:

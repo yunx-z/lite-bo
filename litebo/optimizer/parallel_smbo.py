@@ -43,7 +43,7 @@ class pSMBO(BOBase):
                  initial_configurations=None,
                  init_strategy='random_explore_first',
                  history_bo_data: List[OrderedDict] = None,
-                 initial_runs=10,
+                 initial_runs=4,
                  task_id=None,
                  random_state=1):
 
@@ -75,12 +75,19 @@ class pSMBO(BOBase):
 
         self.parallel_strategy = parallel_strategy
         self.batch_size = batch_size
+        self.perfs=list()
+        self.best_perf=list()
+        self.time_elapsed=list()
+        self.start_time=time.time()
 
     def callback(self, result):
         _config, _perf = result[0], result[1]
         _observation = [_config, _perf, SUCCESS]
         # Report the result, and remove the config from the running queue.
         self.config_advisor.update_observation(_observation)
+        self.perfs.append(_perf)
+        self.best_perf.append(self.get_incumbent()[0][1])
+        self.time_elapsed.append(time.time()-self.start_time)
         # Parent process: collect the result and increment id.
         self.iteration_id += 1
 
@@ -97,7 +104,7 @@ class pSMBO(BOBase):
 
     def sync_run(self):
         with ParallelEvaluation(wrapper, n_worker=self.batch_size) as proc:
-            batch_num = (self.max_iterations + self.batch_size - 1) // self.batch_size
+            batch_num = (self.max_iterations - self.init_num + self.batch_size) // self.batch_size
             batch_id = 0
             while batch_id < batch_num:
                 configs = self.config_advisor.get_suggestions()
@@ -109,6 +116,9 @@ class pSMBO(BOBase):
                     _perf = _result[-1]
                     _observation = [_config, _perf, SUCCESS]
                     self.config_advisor.update_observation(_observation)
+                    self.perfs.append(_perf)
+                    self.best_perf.append(self.get_incumbent()[0][1])
+                    self.time_elapsed.append(time.time() - self.start_time)
                     self.logger.info('In the %d-th batch [%d], result is: %.3f' % (batch_id, idx, _perf))
                 batch_id += 1
 
@@ -117,3 +127,12 @@ class pSMBO(BOBase):
             self.async_run()
         else:
             self.sync_run()
+
+    def get_plot_data(self):
+        return self.perfs, self.best_perf, self.time_elapsed
+
+
+
+
+
+

@@ -2,6 +2,7 @@ import sys
 import traceback
 from typing import List
 from collections import OrderedDict
+import time
 from litebo.optimizer.base import BOBase
 from litebo.utils.constants import MAXINT, SUCCESS, FAILDED, TIMEOUT
 from litebo.utils.limit import time_limit, TimeoutException
@@ -17,7 +18,7 @@ class SMBO(BOBase):
                  history_bo_data: List[OrderedDict] = None,
                  logging_dir='logs',
                  initial_configurations=None,
-                 initial_runs=3,
+                 initial_runs=4,
                  task_id=None,
                  random_state=1):
 
@@ -33,6 +34,10 @@ class SMBO(BOBase):
                                       task_id=task_id,
                                       output_dir=logging_dir,
                                       rng=self.rng)
+        self.perfs=list()
+        self.best_perf=list()
+        self.time_elapsed=list()
+        self.start_time=time.time()
 
     def run(self):
         while self.iteration_id < self.max_iterations:
@@ -65,6 +70,10 @@ class SMBO(BOBase):
 
             observation = [config, perf, trial_state]
             self.config_advisor.update_observation(observation)
+            if trial_state==SUCCESS:
+                self.perfs.append(perf)
+                self.best_perf.append(self.get_incumbent()[0][1])
+                self.time_elapsed.append(time.time()-self.start_time)
         else:
             self.logger.info('This configuration has been evaluated! Skip it.')
             if config in self.config_advisor.configurations:
@@ -76,3 +85,6 @@ class SMBO(BOBase):
         self.iteration_id += 1
         self.logger.info('In the %d-th iteration, the objective value: %.4f' % (self.iteration_id, perf))
         return config, trial_state, perf, trial_info
+
+    def get_plot_data(self):
+        return self.perfs, self.best_perf, self.time_elapsed

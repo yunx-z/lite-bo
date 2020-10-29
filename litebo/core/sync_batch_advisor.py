@@ -9,7 +9,7 @@ from litebo.core.advisor import Advisor
 class SyncBatchAdvisor(Advisor):
     def __init__(self, config_space,
                  batch_size=4,
-                 initial_trials=10,
+                 initial_trials=4,
                  initial_configurations=None,
                  init_strategy='random_explore_first',
                  optimization_strategy='bo',
@@ -112,7 +112,7 @@ class SyncBatchAdvisor(Advisor):
 
     def update_observation(self, observation):
         config, perf, trial_state = observation
-        if not isinstance(perf, float):
+        if not isinstance(perf, (float,int)):
             perf = perf[-1]
         if trial_state == SUCCESS and perf < MAXINT:
             if len(self.configurations) == 0:
